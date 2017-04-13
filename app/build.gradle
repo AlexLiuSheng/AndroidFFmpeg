@@ -11,16 +11,16 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
-        ndk{
+        ndk {
 //            moduleName "jnidemo"         //生成的so名字
             abiFilters "armeabi"
         }
 
     }
-    sourceSets{
+    sourceSets {
 
-        main{
-            jniLibs.srcDirs=['libs']
+        main {
+            jniLibs.srcDirs = ['libs']
         }
     }
 

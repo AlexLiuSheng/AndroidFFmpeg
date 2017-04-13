@@ -30,7 +30,8 @@ public class MainActivity extends AppCompatActivity {
         String inputStr=folderurl+"/1490338208767.mp4";
         String outputStr=folderurl+"/YUV.yuv";
         //ffmpeg.toYUV(inputStr,outputStr);
-        startActivity(new Intent(this,SDLActivity.class));
+        startActivity(new Intent(this,PlayActivity.class));
 
     }
+
 }

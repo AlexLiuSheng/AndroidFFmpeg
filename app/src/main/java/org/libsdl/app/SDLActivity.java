@@ -1,34 +1,62 @@
 package org.libsdl.app;
 
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.graphics.Color;
+import android.graphics.PixelFormat;
+import android.graphics.Point;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
+import android.media.MediaRecorder;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.text.InputType;
+import android.util.Log;
+import android.util.SparseArray;
+import android.view.Display;
+import android.view.Gravity;
+import android.view.InputDevice;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.lang.reflect.Method;
-
-import android.app.*;
-import android.content.*;
-import android.text.InputType;
-import android.view.*;
-import android.view.inputmethod.BaseInputConnection;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputConnection;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.RelativeLayout;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.os.*;
-import android.util.Log;
-import android.util.SparseArray;
-import android.graphics.*;
-import android.graphics.drawable.Drawable;
-import android.media.*;
-import android.hardware.*;
-import android.content.pm.ActivityInfo;
 
 /**
  SDL Activity
@@ -60,7 +88,10 @@ public class SDLActivity extends Activity {
     // Audio
     protected static AudioTrack mAudioTrack;
     protected static AudioRecord mAudioRecord;
-
+    /**
+     * 传入C的参数
+     */
+    String []sdlParamsStrs;
     /**
      * This method is called by SDL before loading the native shared libraries.
      * It can be overridden to provide names of shared libraries to be loaded.
@@ -94,8 +125,19 @@ public class SDLActivity extends Activity {
      * @return arguments for the native application.
      */
     protected String[] getArguments() {
-        String []strings=new String[]{"/storage/emulated/0/test.mp4"};
-        return strings;
+
+        return sdlParamsStrs;
+    }
+    public  Point getScreenSize(){
+        WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
+        Display display = windowManager.getDefaultDisplay();
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR2){
+            return new Point(display.getWidth(), display.getHeight());
+        }else{
+            Point point = new Point();
+            display.getSize(point);
+            return point;
+        }
     }
 
     public static void initialize() {
@@ -116,6 +158,8 @@ public class SDLActivity extends Activity {
         mHasFocus = true;
     }
 
+
+
     // Setup
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +171,7 @@ public class SDLActivity extends Activity {
         SDLActivity.initialize();
         // So we can call stuff from static callbacks
         mSingleton = this;
-
+        sdlParamsStrs=new String[]{"/storage/emulated/0/test.mp4",getScreenSize().x+"", getScreenSize().y+""};
         // Load shared libraries
         String errorMsgBrokenLib = "";
         try {
@@ -1277,6 +1321,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
             if ((keyCode == KeyEvent.KEYCODE_BACK) || (keyCode == KeyEvent.KEYCODE_FORWARD)) {
                 switch (event.getAction()) {
                     case KeyEvent.ACTION_DOWN:
+
                     case KeyEvent.ACTION_UP:
                         // mark the event as handled or it will be handled by system
                         // handling KEYCODE_BACK by system will call onBackPressed()
@@ -1740,4 +1785,5 @@ class SDLGenericMotionListener_API12 implements View.OnGenericMotionListener {
         // Event was not managed
         return false;
     }
+
 }

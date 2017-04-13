@@ -26,8 +26,8 @@
 
 
 //屏幕参数
-int SCREEN_W = 400;
-int SCREEN_H = 400;
+int SCREEN_W ;
+int SCREEN_H ;
 
 //设置buffer输出格式，YUV：1， RGB：0
 #define BUFFER_FMT_YUV 0
@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 //SDL Parameters
     SDL_Window     *sdlWindow;
     SDL_Texture    *sdlTexture;
-    SDL_Rect sdlRect;
+     SDL_Rect sdlRect;
     SDL_Renderer   *renderer;
     SDL_Event     event;
 
@@ -62,7 +62,9 @@ int main(int argc, char** argv)
     }
     //获取文件名
     const char* mediaUri = (const char *) argv[1];
-
+    SCREEN_W=atoi(argv[2]);
+     SCREEN_H=atoi(argv[3]);
+     //LOGE(SCREEN_W);
     av_register_all();
 
     //分配一个AVFormatContext
@@ -154,10 +156,17 @@ int main(int argc, char** argv)
         LOGE("SDL_Init failed %s" ,SDL_GetError());
         exit(1);
     }
-
+    //默认全屏可以不用设置,根据视频宽高自适应
+    int vwidth= pCodecCtx->width;
+    int vheight= pCodecCtx->height;
+    int cheight=(int)((1.0*vheight*SCREEN_W)/vwidth);
+        sdlRect.x=0;
+        sdlRect.y=0;
+        sdlRect.w=SCREEN_W;
+        sdlRect.h=cheight;
     //设置window属性
     sdlWindow = SDL_CreateWindow("Convexd_SDL",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,
-                              SCREEN_W, SCREEN_H,SDL_WINDOW_RESIZABLE|SDL_WINDOW_FULLSCREEN|SDL_WINDOW_OPENGL);
+                              SCREEN_W, cheight,SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
 
     if(!sdlWindow) {
         LOGE("SDL: could not set video mode - exiting\n");
@@ -175,30 +184,25 @@ int main(int argc, char** argv)
     sdlTexture = SDL_CreateTexture(renderer,
                             sdl_out_fmt,SDL_TEXTUREACCESS_STREAMING,
                             pCodecCtx->width, pCodecCtx->height);
-    //默认全屏可以不用设置
-  //  sdlRect.x = 0;
- //   sdlRect.y = 0;
- //   sdlRect.w = SCREEN_W;
-  //  sdlRect.h = SCREEN_H;
-
     // Read frames
     while (av_read_frame(pFormatCtx, packet) >= 0) {
         // Is this a packet from the video stream?
         if (packet->stream_index == streamIdx) {
             //decoder allocate frame to pFrame,new api
-            LOGI("%s","Got Video Packet Succeed");
+        //    LOGI("%s","Got Video Packet Succeed");
             int getPacketCode = avcodec_send_packet(pCodecCtx, packet);
             if(getPacketCode == 0) {
                 int getFrameCode = avcodec_receive_frame(pCodecCtx, pFrame);
-                LOGI("%d", getFrameCode);
+              //  LOGI("%d", getFrameCode);
                 // Did we get a video frame?
                 if (getFrameCode == 0) {
-                    LOGI("%s", "Got Video Frame Succeed");
+                //    LOGI("%s", "Got Video Frame Succeed");
 
                     //scale Frame
                     sws_scale(img_convert_ctx, (const uint8_t *const *) pFrame->data,
                               pFrame->linesize, 0, pFrame->height,
                               pFrame_out->data, pFrame_out->linesize);
+
                     #if (BUFFER_FMT_YUV == 1)
 
                     SDL_UpdateYUVTexture(sdlTexture, NULL, pFrame_out->data[0], pFrame_out->linesize[0],
@@ -208,12 +212,13 @@ int main(int argc, char** argv)
                      SDL_UpdateTexture(sdlTexture,NULL,pFrame_out->data[0],pCodecCtx->width*4);  //4通道：pitch = width×4
                     #endif
                     SDL_RenderClear(renderer);
-                    SDL_RenderCopy(renderer, sdlTexture, NULL, NULL);
+                    SDL_RenderCopy(renderer, sdlTexture, NULL, &sdlRect);
                     SDL_RenderPresent(renderer);
-                    //设置每秒25帧，1000/25 = 40
+                    //设置每秒25帧，1000/2.5 = 40
                     SDL_Delay(25);
                     SDL_PollEvent(&event);
                     switch (event.type) {
+                         LOGE("%s", "退出");
                         case SDL_QUIT:
                             SDL_Quit();
                             exit(0);
@@ -225,6 +230,7 @@ int main(int argc, char** argv)
                     }
                 }
                 else if (getFrameCode == AVERROR(EAGAIN)) {
+
                     LOGE("%s", "Frame is not available right now,please try another input");
                 }
                 else if (getFrameCode == AVERROR_EOF) {
@@ -249,5 +255,3 @@ int main(int argc, char** argv)
  //   SDL_Quit();
     return 0;
 }
-
-

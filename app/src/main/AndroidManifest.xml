@@ -23,7 +23,13 @@
             android:name="org.libsdl.app.SDLActivity"
             android:launchMode="singleTask"
             />
-        <activity android:name=".PlayActivity"></activity>
+
+        <activity android:name=".PlayActivity"
+            android:screenOrientation="sensor"
+            android:configChanges="keyboardHidden|orientation|screenSize">
+
+
+        </activity>
     </application>
 
 </manifest>

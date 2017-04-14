@@ -48,6 +48,7 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +58,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  SDL Activity
@@ -171,7 +173,7 @@ public class SDLActivity extends Activity {
         SDLActivity.initialize();
         // So we can call stuff from static callbacks
         mSingleton = this;
-        sdlParamsStrs=new String[]{"/storage/emulated/0/test.mp4",getScreenSize().x+"", getScreenSize().y+""};
+        sdlParamsStrs=new String[]{"/storage/emulated/0/test.mp4"};
         // Load shared libraries
         String errorMsgBrokenLib = "";
         try {
@@ -219,8 +221,8 @@ public class SDLActivity extends Activity {
         }
 
         mLayout = new RelativeLayout(this);
+        mLayout.setBackgroundColor(Color.WHITE);
         mLayout.addView(mSurface);
-
         setContentView(mLayout);
 
         // Get filename from "Open with" of another application
@@ -339,7 +341,31 @@ public class SDLActivity extends Activity {
         }
         return super.dispatchKeyEvent(event);
     }
-
+   public float getScreenW(){
+       return  getScreenSize().x;
+   }
+    public float getScreenH(){
+        return  getScreenSize().y;
+    }
+    /**
+     * C调用 Java的方法
+     * 根据C计算的视频高度，来重新测量surface的高度
+     * @param height
+     */
+    public void reMeasureSurface(int height){
+        final int  vheight=height;
+        //在UI线程中进行更新
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ViewGroup.LayoutParams params=mSurface.getLayoutParams();
+                params.height=vheight;
+                mSurface.setLayoutParams(params);
+              //  Toast.makeText(SDLActivity.this, "height"+vheight, Toast.LENGTH_SHORT).show();
+                Log.e("height",vheight+"");
+            }
+        });
+    }
     /** Called by onPause or surfaceDestroyed. Even if surfaceDestroyed
      *  is the first to be called, mIsSurfaceReady should still be set
      *  to 'true' during the call to onPause (in a usual scenario).
@@ -1093,6 +1119,13 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
     // Keep track of the surface size to normalize touch events
     protected static float mWidth, mHeight;
 
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+
+       // heightMeasureSpec=MeasureSpec.makeMeasureSpec(heigth,MeasureSpec.EXACTLY);
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
     // Startup
     public SDLSurface(Context context) {
         super(context);
@@ -1204,7 +1237,7 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
         mWidth = width;
         mHeight = height;
         SDLActivity.onNativeResize(width, height, sdlFormat, mDisplay.getRefreshRate());
-        Log.v("SDL", "Window size: " + width + "x" + height);
+        Log.e("SDL", "Window size: " + width + "x" + height);
 
 
         boolean skip = false;

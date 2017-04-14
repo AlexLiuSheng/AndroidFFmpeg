@@ -18,4 +18,5 @@ public class FFmpegNative {
     public native String helloJNI();
     public native String helloFFMPEG();
     public native int  toYUV(String inputStr,String outputStr);
+    public native void exit();
 }

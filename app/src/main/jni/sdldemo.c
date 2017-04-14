@@ -11,6 +11,7 @@
 #include "src/video/SDL_sysvideo.h"
 #include "libavutil/imgutils.h"
 #include "SDL.h"
+#include <cutil.c>
 
 
 #ifdef ANDROID
@@ -31,6 +32,41 @@ int SCREEN_H ;
 
 //设置buffer输出格式，YUV：1， RGB：0
 #define BUFFER_FMT_YUV 0
+/**回调java方法重新测量Surface的高度*/
+void remeasure_surface_size(int32_t  height){
+  // retrieve the JNI environment.
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+
+    // retrieve the Java instance of the SDLActivity
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+
+    // find the Java class of the activity. It should be SDLActivity or a subclass of it.
+       jclass clazz = (*env)->FindClass(env,"org/libsdl/app/SDLActivity");
+ //  jclass clazz(env->GetObjectClass(activity));
+
+    // find the identifier of the method to call
+    jmethodID method_id =  (*env)->GetMethodID(env,clazz, "reMeasureSurface", "(I)V");
+
+    // effectively call the Java method
+     (*env)->CallVoidMethod(env,activity, method_id,height);
+
+    // clean up the local references.
+    // (*env)->DeleteLocalRef(activity);
+ //    (*env)->DeleteLocalRef(clazz);
+}
+void resize_sdl_rect(SDL_Rect* sdlRect,int vwidth,int vheight){
+      SCREEN_W=(int)getScreenW();
+     SCREEN_H=(int)getScreenH();
+   int cheight=(int)((1.0*vheight*SCREEN_W)/vwidth);
+        sdlRect->x=0;
+        sdlRect->y=0;
+        sdlRect->w=SCREEN_W;
+       sdlRect->h=cheight;
+       if(cheight>SCREEN_H){
+       sdlRect->h=SCREEN_H;
+        }
+        remeasure_surface_size(cheight);
+}
 int main(int argc, char** argv)
 {
 
@@ -62,8 +98,10 @@ int main(int argc, char** argv)
     }
     //获取文件名
     const char* mediaUri = (const char *) argv[1];
-    SCREEN_W=atoi(argv[2]);
-     SCREEN_H=atoi(argv[3]);
+  //  SCREEN_W=atoi(argv[2]);
+    // SCREEN_H=atoi(argv[3]);
+    SCREEN_W=(int)getScreenW();
+     SCREEN_H=(int)getScreenH();
      //LOGE(SCREEN_W);
     av_register_all();
 
@@ -159,14 +197,10 @@ int main(int argc, char** argv)
     //默认全屏可以不用设置,根据视频宽高自适应
     int vwidth= pCodecCtx->width;
     int vheight= pCodecCtx->height;
-    int cheight=(int)((1.0*vheight*SCREEN_W)/vwidth);
-        sdlRect.x=0;
-        sdlRect.y=0;
-        sdlRect.w=SCREEN_W;
-        sdlRect.h=cheight;
+    resize_sdl_rect(&sdlRect,vwidth,vheight);
     //设置window属性
     sdlWindow = SDL_CreateWindow("Convexd_SDL",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,
-                              SCREEN_W, cheight,SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
+                             SCREEN_W, SCREEN_H,SDL_WINDOW_RESIZABLE|SDL_WINDOW_OPENGL);
 
     if(!sdlWindow) {
         LOGE("SDL: could not set video mode - exiting\n");
@@ -214,27 +248,32 @@ int main(int argc, char** argv)
                     SDL_RenderClear(renderer);
                     SDL_RenderCopy(renderer, sdlTexture, NULL, &sdlRect);
                     SDL_RenderPresent(renderer);
-                    //设置每秒25帧，1000/2.5 = 40
-                    SDL_Delay(25);
-                    SDL_PollEvent(&event);
+                    //设置每秒25帧，1000/25 = 40
+                    SDL_Delay(0);
+                    while (SDL_PollEvent(&event)){
                     switch (event.type) {
-                         LOGE("%s", "退出");
-                        case SDL_QUIT:
-                            SDL_Quit();
-                            exit(0);
+
+                        case SDL_WINDOWEVENT_SIZE_CHANGED:
+                         LOGE("%s", "大小改变");
+                         resize_sdl_rect(&sdlRect,vwidth,vheight);
+                     //   int winSizeW,winSizeH;
+                       // SDL_GetWindowSize(sdlWindow,&winSizeW,&winSizeH);
+                           // SDL_Quit();
+                           // exit(0);
                         case SDL_KEYDOWN:
-                            SDL_Quit();
-                            exit(0);
+                           LOGE("%s", "退出");
+                              SDL_Quit();
+                              exit(0);
                         default:
                             break;
                     }
+                    }
                 }
                 else if (getFrameCode == AVERROR(EAGAIN)) {
-
-                    LOGE("%s", "Frame is not available right now,please try another input");
+                  LOGE("%s", "Frame is not available right now,please try another input");
                 }
                 else if (getFrameCode == AVERROR_EOF) {
-                    LOGE("%s", "the decoder has been fully flushed");
+                   LOGE("%s", "the decoder has been fully flushed");
                 }
                 else if (getFrameCode == AVERROR(EINVAL)) {
                     LOGE("%s", "codec not opened, or it is an encoder");
@@ -255,3 +294,5 @@ int main(int argc, char** argv)
  //   SDL_Quit();
     return 0;
 }
+
+

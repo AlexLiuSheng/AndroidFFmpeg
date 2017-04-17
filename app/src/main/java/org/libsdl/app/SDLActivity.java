@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
@@ -173,6 +174,9 @@ public class SDLActivity extends Activity {
         SDLActivity.initialize();
         // So we can call stuff from static callbacks
         mSingleton = this;
+        if(getIntent().getData()!=null){
+            sdlParamsStrs=new String[]{getIntent().getData().getPath()};
+        }else
         sdlParamsStrs=new String[]{"/storage/emulated/0/test.mp4"};
         // Load shared libraries
         String errorMsgBrokenLib = "";
@@ -341,7 +345,19 @@ public class SDLActivity extends Activity {
         }
         return super.dispatchKeyEvent(event);
     }
-   public float getScreenW(){
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+
+        if(this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
+            getWindow().clearFlags(WindowManager.LayoutParams. FLAG_FULLSCREEN);
+        }else if(this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
+            getWindow().setFlags(WindowManager.LayoutParams. FLAG_FULLSCREEN , WindowManager.LayoutParams. FLAG_FULLSCREEN);
+        }
+        super.onConfigurationChanged(newConfig);
+    }
+
+    public float getScreenW(){
        return  getScreenSize().x;
    }
     public float getScreenH(){

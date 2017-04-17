@@ -29,6 +29,31 @@
 //屏幕参数
 int SCREEN_W ;
 int SCREEN_H ;
+ int vwidth;
+  int vheight;
+  //帧率
+   int fps;
+  //FFmpeg Parameters
+    AVFormatContext *pFormatCtx;
+    int             streamIdx;
+    AVCodecContext  *pCodecCtx;
+    AVCodecParameters *avCodecParameters;
+    AVCodec         *pCodec;
+    AVFrame         *pFrame, *pFrame_out;
+    AVPacket        *packet;
+
+    //size buffer
+    uint8_t *out_buffer;
+
+    static struct SwsContext *img_convert_ctx;
+
+//SDL Parameters
+    SDL_Window     *sdlWindow;
+    SDL_Texture    *sdlTexture;
+     SDL_Rect sdlRect;
+    SDL_Renderer   *renderer;
+    SDL_Event     event;
+     const char* mediaUri;
 
 //设置buffer输出格式，YUV：1， RGB：0
 #define BUFFER_FMT_YUV 0
@@ -67,42 +92,15 @@ void resize_sdl_rect(SDL_Rect* sdlRect,int vwidth,int vheight){
         }
         remeasure_surface_size(cheight);
 }
-int main(int argc, char** argv)
-{
-
-    //FFmpeg Parameters
-    AVFormatContext *pFormatCtx;
-    int             streamIdx;
-    AVCodecContext  *pCodecCtx;
-    AVCodecParameters *avCodecParameters;
-    AVCodec         *pCodec;
-    AVFrame         *pFrame, *pFrame_out;
-    AVPacket        *packet;
-
-    //size buffer
-    uint8_t *out_buffer;
-
-    static struct SwsContext *img_convert_ctx;
-
-//SDL Parameters
-    SDL_Window     *sdlWindow;
-    SDL_Texture    *sdlTexture;
-     SDL_Rect sdlRect;
-    SDL_Renderer   *renderer;
-    SDL_Event     event;
-
-    if(argc < 2)
-    {
-        LOGE("no media input!");
-        return -1;
-    }
-    //获取文件名
-    const char* mediaUri = (const char *) argv[1];
-  //  SCREEN_W=atoi(argv[2]);
-    // SCREEN_H=atoi(argv[3]);
-    SCREEN_W=(int)getScreenW();
-     SCREEN_H=(int)getScreenH();
-     //LOGE(SCREEN_W);
+/**计算帧率
+*/
+void caculate_fps(){
+  AVStream *stream=pFormatCtx->streams[packet->stream_index];
+  fps=stream->avg_frame_rate.num/stream->avg_frame_rate.den;//每秒多少帧
+ LOGE("帧数是:%d", fps);
+}
+int play_video(){
+  //LOGE(SCREEN_W);
     av_register_all();
 
     //分配一个AVFormatContext
@@ -167,7 +165,6 @@ int main(int argc, char** argv)
         LOGE("Unable to allocate an AVFrame!\n");
         return -1;
     }
-
     //decode packet
     packet = av_packet_alloc();
 
@@ -190,13 +187,13 @@ int main(int argc, char** argv)
                                      NULL, NULL);
 
     //初始化SDL
-    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER|SDL_INIT_EVENTS)) {
         LOGE("SDL_Init failed %s" ,SDL_GetError());
         exit(1);
     }
     //默认全屏可以不用设置,根据视频宽高自适应
-    int vwidth= pCodecCtx->width;
-    int vheight= pCodecCtx->height;
+     vwidth= pCodecCtx->width;
+     vheight= pCodecCtx->height;
     resize_sdl_rect(&sdlRect,vwidth,vheight);
     //设置window属性
     sdlWindow = SDL_CreateWindow("Convexd_SDL",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,
@@ -207,7 +204,7 @@ int main(int argc, char** argv)
         exit(1);
     }
     //create renderer and set parameter
-    renderer = SDL_CreateRenderer(sdlWindow,-1,0);
+    renderer = SDL_CreateRenderer(sdlWindow,-1,0 );
 
 #if BUFFER_FMT_YUV
     Uint32 sdl_out_fmt = SDL_PIXELFORMAT_IYUV;
@@ -218,6 +215,7 @@ int main(int argc, char** argv)
     sdlTexture = SDL_CreateTexture(renderer,
                             sdl_out_fmt,SDL_TEXTUREACCESS_STREAMING,
                             pCodecCtx->width, pCodecCtx->height);
+    caculate_fps();
     // Read frames
     while (av_read_frame(pFormatCtx, packet) >= 0) {
         // Is this a packet from the video stream?
@@ -236,7 +234,7 @@ int main(int argc, char** argv)
                     sws_scale(img_convert_ctx, (const uint8_t *const *) pFrame->data,
                               pFrame->linesize, 0, pFrame->height,
                               pFrame_out->data, pFrame_out->linesize);
-
+                   // resize_sdl_rect(&sdlRect,vwidth,vheight);
                     #if (BUFFER_FMT_YUV == 1)
 
                     SDL_UpdateYUVTexture(sdlTexture, NULL, pFrame_out->data[0], pFrame_out->linesize[0],
@@ -248,18 +246,16 @@ int main(int argc, char** argv)
                     SDL_RenderClear(renderer);
                     SDL_RenderCopy(renderer, sdlTexture, NULL, &sdlRect);
                     SDL_RenderPresent(renderer);
-                    //设置每秒25帧，1000/25 = 40
-                    SDL_Delay(0);
+                    //设置帧率
+                    SDL_Delay(fps);
                     while (SDL_PollEvent(&event)){
-                    switch (event.type) {
 
-                        case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    switch (event.type) {
+                    //横竖屏切换时 ，改变纹理大小
+                        case SDL_WINDOWEVENT:
                          LOGE("%s", "大小改变");
-                         resize_sdl_rect(&sdlRect,vwidth,vheight);
-                     //   int winSizeW,winSizeH;
-                       // SDL_GetWindowSize(sdlWindow,&winSizeW,&winSizeH);
-                           // SDL_Quit();
-                           // exit(0);
+                        resize_sdl_rect(&sdlRect,vwidth,vheight);
+                           break;
                         case SDL_KEYDOWN:
                            LOGE("%s", "退出");
                               SDL_Quit();
@@ -283,15 +279,35 @@ int main(int argc, char** argv)
                 }
             }
         }
+
         // Free the packet that was allocated by av_read_frame
         av_packet_unref(packet);
     }
-    sws_freeContext(img_convert_ctx);
-    av_frame_free(&pFrame_out);
-    av_frame_free(&pFrame);
-    avcodec_close(pCodecCtx);
-    avformat_close_input(&pFormatCtx);
- //   SDL_Quit();
+        sws_freeContext(img_convert_ctx);
+        av_frame_free(&pFrame_out);
+        av_frame_free(&pFrame);
+        avcodec_close(pCodecCtx);
+        avformat_close_input(&pFormatCtx);
+        SDL_Quit();
+        //循环播放
+       play_video();
+}
+
+int main(int argc, char** argv)
+{
+    if(argc < 2)
+    {
+        LOGE("no media input!");
+        return -1;
+    }
+    //获取文件名
+   mediaUri = (const char *) argv[1];
+    SCREEN_W=(int)getScreenW();
+     SCREEN_H=(int)getScreenH();
+     int value=play_video();
+     if(value!=0)
+      return value;
+
     return 0;
 }
 

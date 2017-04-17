@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent=new Intent(MainActivity.this,PlayActivity.class);
-            //    intent.setData(Uri.fromFile(new File("/storage/emulated/0/test.mp4")));
+                intent.setData(Uri.fromFile(new File("/storage/emulated/0/test.mp4")));
                 startActivity(intent);
 
             }

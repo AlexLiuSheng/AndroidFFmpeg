@@ -32,15 +32,15 @@ public class MainActivity extends AppCompatActivity {
             tv.setText("Failed!");
         }
         String folderurl= Environment.getExternalStorageDirectory().getPath();
-        String inputStr=folderurl+"/1490338208767.mp4";
-        String outputStr=folderurl+"/YUV.yuv";
-        //ffmpeg.toYUV(inputStr,outputStr);
+        String inputStr=folderurl+"/test.mp4";
+        String outputStr=folderurl+"/input.yuv";
+      //  ffmpeg.toYUV(inputStr,outputStr);
         Button btn_Start= (Button) findViewById(R.id.btn_Start);
         btn_Start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent intent=new Intent(MainActivity.this,PlayActivity.class);
-                intent.setData(Uri.fromFile(new File("/storage/emulated/0/test.mp4")));
+                intent.setData(Uri.fromFile(new File("/storage/emulated/0/h.mp4")));
                 startActivity(intent);
 
             }

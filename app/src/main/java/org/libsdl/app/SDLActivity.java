@@ -51,6 +51,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.allenliu.ffmepgdemo.PlayActivity;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -127,21 +129,11 @@ public class SDLActivity extends Activity {
      * The default implementation returns an empty array. It never returns null.
      * @return arguments for the native application.
      */
-    protected String[] getArguments() {
+    public String[] getArguments() {
 
         return sdlParamsStrs;
     }
-    public  Point getScreenSize(){
-        WindowManager windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        Display display = windowManager.getDefaultDisplay();
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB_MR2){
-            return new Point(display.getWidth(), display.getHeight());
-        }else{
-            Point point = new Point();
-            display.getSize(point);
-            return point;
-        }
-    }
+
 
     public static void initialize() {
         // The static nature of the singleton and Android quirkyness force us to initialize everything here
@@ -227,6 +219,7 @@ public class SDLActivity extends Activity {
         mLayout = new RelativeLayout(this);
         mLayout.setBackgroundColor(Color.WHITE);
         mLayout.addView(mSurface);
+
         setContentView(mLayout);
 
         // Get filename from "Open with" of another application
@@ -346,23 +339,8 @@ public class SDLActivity extends Activity {
         return super.dispatchKeyEvent(event);
     }
 
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
 
-        if(this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT){
-            getWindow().clearFlags(WindowManager.LayoutParams. FLAG_FULLSCREEN);
-        }else if(this.getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE){
-            getWindow().setFlags(WindowManager.LayoutParams. FLAG_FULLSCREEN , WindowManager.LayoutParams. FLAG_FULLSCREEN);
-        }
-        super.onConfigurationChanged(newConfig);
-    }
 
-    public float getScreenW(){
-       return  getScreenSize().x;
-   }
-    public float getScreenH(){
-        return  getScreenSize().y;
-    }
     /**
      * C调用 Java的方法
      * 根据C计算的视频高度，来重新测量surface的高度
@@ -1108,7 +1086,7 @@ public class SDLActivity extends Activity {
 /**
  Simple nativeInit() runnable
  */
-class SDLMain implements Runnable {
+ class SDLMain implements Runnable {
     @Override
     public void run() {
         // Runs SDL_main()
@@ -1293,7 +1271,8 @@ class SDLSurface extends SurfaceView implements SurfaceHolder.Callback,
 
         // Set mIsSurfaceReady to 'true' *before* making a call to handleResume
         SDLActivity.mIsSurfaceReady = true;
-        SDLActivity.onNativeSurfaceChanged();
+
+
 
 
         if (SDLActivity.mSDLThread == null) {

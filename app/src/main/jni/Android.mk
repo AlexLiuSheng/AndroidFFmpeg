@@ -134,7 +134,7 @@ LOCAL_EXPORT_C_INCLUDES := $(LOCAL_C_INCLUDES)
 # Add your application source files here...
 
 LOCAL_SRC_FILES := $(LOCAL_PATH)/src/main/android/SDL_android_main.c \
-    $(LOCAL_PATH)/sdldemo.c
+    $(LOCAL_PATH)/sdl_player.c
     #下面表示 c文件需要用到的so文件 之前没写晕
 LOCAL_SHARED_LIBRARIES := SDL2 libavcodec-57 libavfilter-6 libavformat-57 libavutil-55  libswresample-2 libswscale-4
 
